@@ -30,7 +30,8 @@ win.geometry(str(win_x)+'x'+str(win_y)+'+0+0')
 win.configure(bg='black')
 
 # 创建画布
-canvas = tk.Canvas(win, width=win_x, height=win_y, background='red')
+canvas = tk.Canvas(win, width=win_x, height=win_y,
+                   background='red', bd=0, highlightthickness=0)
 canvas.pack()
 
 star_radius_scale = 40
