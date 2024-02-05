@@ -54,6 +54,7 @@ class Star:
         center_star_y = self.data['position']['y'] - center_coord['y']
         draw_circle(canvas, center_star_x, center_star_y,
                     self.data['radius']*star_radius_scale, universe_scale, 'white')
+
         show_text = ''
         show_text += 'star_id:'+str(self.data['id'])+'\n'
         if self.data['hip_index']:
@@ -90,8 +91,15 @@ class Planet:
         draw_circle(canvas, planet_x, planet_y,
                     self.data['radius']*planet_radius_scale, universe_scale, 'white')
 
+        show_text = ''
+        show_text += 'planet_radius:'+str(self.data['radius'])+'\n'
+        show_text += 'orbit_radius:'+str(round(self.data['orbit_radius'], 5))
 
-def draw_stars(star_return):
+        draw_text(canvas, show_text, planet_x +
+                  (self.data['radius']*planet_radius_scale+60)*universe_scale, planet_y, universe_scale, 5, 'yellow')
+
+
+def init_stars(star_return):
     global universe_scale
     global win_x, win_y
     # 绘制天体
@@ -214,7 +222,7 @@ def get_stars(posx: float, posy: float, posz: float, dist: float):
 
     print(' ')
 
-    draw_stars(star_return)
+    init_stars(star_return)
 
     return star_return
 
