@@ -21,7 +21,7 @@ df = pd.read_csv('./../RawData/hygdata_v3.csv')
 df.fillna(0, inplace=True)
 
 # 初始化tk窗体
-win_x = int(win32api.GetSystemMetrics(win32con.SM_CXSCREEN)/4)
+win_x = int(win32api.GetSystemMetrics(win32con.SM_CXSCREEN)/3)
 win_y = int(win32api.GetSystemMetrics(win32con.SM_CYSCREEN))
 
 win = tk.Tk()
@@ -33,8 +33,52 @@ win.configure(bg='black')
 canvas = tk.Canvas(win, width=win_x, height=win_y, background='red')
 canvas.pack()
 
+star_radius_scale = 40
+planet_radius_scale = 20
+planet_orbit_scale = 5
+universe_scale = 1
+win_padding = 40
+g_constant = 0.1
+
+
+star_list = []
+planet_list = []
+
+
+class Star:
+    def __init__(self, data):
+        self.data = data
+
+    def draw(self, canvas, center_coord):
+        center_star_x = self.data['position']['x'] - center_coord['x']
+        center_star_y = self.data['position']['y'] - center_coord['y']
+        draw_circle(canvas, center_star_x, center_star_y,
+                    self.data['radius']*star_radius_scale, universe_scale, 'white')
+
+
+class Planet:
+    def __init__(self, data, center_star):
+        self.data = data
+        self.center_star = center_star
+
+    def draw(self, canvas, center_coord):
+        center_star_x = self.center_star.data['position']['x'] - \
+            center_coord['x']
+        center_star_y = self.center_star.data['position']['y'] - \
+            center_coord['y']
+        planet_x = center_star_x + \
+            math.sin(self.data['start_angle']) * \
+            self.data['orbit_radius']*planet_orbit_scale
+        planet_y = center_star_y - \
+            math.cos(self.data['start_angle']) * \
+            self.data['orbit_radius']*planet_orbit_scale
+        draw_circle(canvas, planet_x, planet_y,
+                    self.data['radius']*planet_radius_scale, universe_scale, 'white')
+
 
 def draw_stars(star_return):
+    global universe_scale
+    global win_x, win_y
     # 绘制天体
     canvas.create_rectangle(0, 0, win_x, win_y, fill='black')
     # 遍历天体列表确定中心点坐标
@@ -46,7 +90,6 @@ def draw_stars(star_return):
     center_coord['x'] = _total_coord['x']/len(star_return['star_list'])
     center_coord['y'] = _total_coord['y']/len(star_return['star_list'])
     # 计算缩放比例
-    padding = 40
     if len(star_return['star_list']) != 1:
         _max_dist_x = 0
         _max_dist_y = 0
@@ -58,30 +101,38 @@ def draw_stars(star_return):
                 _max_dist_x = _delta_x
             if _delta_y > _max_dist_y:
                 _max_dist_y = _delta_y
-        if ((win_x-padding*2)/(win_y-padding*2)) > (_max_dist_x/_max_dist_y):
-            universe_scale = _max_dist_y*2/(win_y-padding*2)
+        if ((win_x-win_padding*2)/(win_y-win_padding*2)) > (_max_dist_x/_max_dist_y):
+            universe_scale = _max_dist_y*2/(win_y-win_padding*2)
         else:
-            universe_scale = _max_dist_x*2/(win_x-padding*2)
+            universe_scale = _max_dist_x*2/(win_x-win_padding*2)
     else:
         universe_scale = 1
+
     # 绘制天体
-    print(universe_scale)
-    radius_scale = 80
+    star_list = []
+    planet_list = []
     for star in star_return['star_list']:
-        x = (star['position']['x'] - center_coord['x']) / \
-            universe_scale + win_x/2
-        y = (star['position']['y'] - center_coord['y']) / \
-            universe_scale + win_y/2
-        canvas.create_oval(
-            x-star['radius']*radius_scale/2,
-            y-star['radius']*radius_scale/2,
-            x+star['radius']*radius_scale/2,
-            y+star['radius']*radius_scale/2,
-            fill='white')
+        center_star = Star(star)
+        star_list.append(center_star)
+        for planet in star['planet']:
+            planet_list.append(Planet(planet, center_star))
+
+    for star_obj in star_list:
+        star_obj.draw(canvas, center_coord)
+
+    for planet_obj in planet_list:
+        planet_obj.draw(canvas, center_coord)
+
+
+# 画圆
+def draw_circle(canvas, x, y, radius, scale, fill_color):
+    draw_x = x/scale+win_x/2
+    draw_y = y/scale+win_y/2
+    canvas.create_oval(draw_x-radius, draw_y-radius, draw_x +
+                       radius, draw_y+radius, fill=fill_color)
+
 
 # 监听请求
-
-
 @app.get("/getStars/{posx}/{posy}/{posz}/{dist}")
 def get_stars(posx: float, posy: float, posz: float, dist: float):
     global df
