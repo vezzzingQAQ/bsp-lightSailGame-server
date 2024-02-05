@@ -54,6 +54,21 @@ class Star:
         center_star_y = self.data['position']['y'] - center_coord['y']
         draw_circle(canvas, center_star_x, center_star_y,
                     self.data['radius']*star_radius_scale, universe_scale, 'white')
+        show_text = ''
+        show_text += 'star_id:'+str(self.data['id'])+'\n'
+        if self.data['hip_index']:
+            show_text += 'hip_index:'+str(self.data['hip_index'])+'\n'
+        if self.data['hd_index']:
+            show_text += 'hd_index:'+str(self.data['hd_index'])+'\n'
+        if self.data['hr_index']:
+            show_text += 'hr_index:'+str(self.data['hr_index'])+'\n'
+        if self.data['gl_code']:
+            show_text += 'gl_code:'+str(self.data['gl_code'])+'\n'
+        if self.data['bf_code']:
+            show_text += 'bf_code:'+str(self.data['bf_code'])
+
+        draw_text(canvas, show_text, center_star_x +
+                  (self.data['radius']*star_radius_scale+80)*universe_scale, center_star_y, universe_scale, 10, 'lime')
 
 
 class Planet:
@@ -90,23 +105,20 @@ def draw_stars(star_return):
     center_coord['x'] = _total_coord['x']/len(star_return['star_list'])
     center_coord['y'] = _total_coord['y']/len(star_return['star_list'])
     # 计算缩放比例
-    if len(star_return['star_list']) != 1:
-        _max_dist_x = 0
-        _max_dist_y = 0
-        for i in range(len(star_return['star_list'])):
-            c_star = star_return['star_list'][i]
-            _delta_x = abs(c_star['position']['x']-center_coord['x'])
-            _delta_y = abs(c_star['position']['y']-center_coord['y'])
-            if _delta_x > _max_dist_x:
-                _max_dist_x = _delta_x
-            if _delta_y > _max_dist_y:
-                _max_dist_y = _delta_y
-        if ((win_x-win_padding*2)/(win_y-win_padding*2)) > (_max_dist_x/_max_dist_y):
-            universe_scale = _max_dist_y*2/(win_y-win_padding*2)
-        else:
-            universe_scale = _max_dist_x*2/(win_x-win_padding*2)
+    _max_dist_x = 0
+    _max_dist_y = 0
+    for i in range(len(star_return['star_list'])):
+        c_star = star_return['star_list'][i]
+        _delta_x = abs(c_star['position']['x']-center_coord['x'])
+        _delta_y = abs(c_star['position']['y']-center_coord['y'])
+        if _delta_x > _max_dist_x:
+            _max_dist_x = _delta_x
+        if _delta_y > _max_dist_y:
+            _max_dist_y = _delta_y
+    if ((win_x-win_padding*2)/(win_y-win_padding*2)) > (_max_dist_x/_max_dist_y):
+        universe_scale = _max_dist_y*2/(win_y-win_padding*2)
     else:
-        universe_scale = 1
+        universe_scale = _max_dist_x*2/(win_x-win_padding*2)
 
     # 绘制天体
     star_list = []
@@ -132,6 +144,14 @@ def draw_circle(canvas, x, y, radius, scale, fill_color):
                        radius, draw_y+radius, fill=fill_color)
 
 
+# 绘制文字
+def draw_text(canvas, text, x, y, scale, font_size, fill_color):
+    draw_x = x/scale+win_x/2
+    draw_y = y/scale+win_y/2
+    canvas.create_text(draw_x, draw_y, text=text, font=(
+        'Aria', font_size), fill=fill_color)
+
+
 # 监听请求
 @app.get("/getStars/{posx}/{posy}/{posz}/{dist}")
 def get_stars(posx: float, posy: float, posz: float, dist: float):
@@ -141,12 +161,18 @@ def get_stars(posx: float, posy: float, posz: float, dist: float):
                              (df['y'] - posy) ** 2 + (df['z'] - posz) ** 2)
     star_list = df[df['distance'] <= dist].values.tolist()
 
-    while len(star_list) == 0:
+    while len(star_list) < 2:
         dist = dist + 0.1
         star_list = df[df['distance'] <= dist].values.tolist()
 
     star_return = {'star_list': [{
         'id': star[0],
+        'hip_index': star[1],
+        'hd_index': star[2],
+        'hr_index': star[3],
+        'gl_code': star[4],
+        'bf_code': star[5],
+        'proper_code': star[6],
         'distToSun': star[9],
         'abs_mag': star[14],
         'spect': star[15],
