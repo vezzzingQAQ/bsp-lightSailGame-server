@@ -21,7 +21,7 @@ df = pd.read_csv('./../RawData/hygdata_v3.csv')
 df.fillna(0, inplace=True)
 
 # 初始化tk窗体
-win_x = int(win32api.GetSystemMetrics(win32con.SM_CXSCREEN)/3)
+win_x = int(win32api.GetSystemMetrics(win32con.SM_CXSCREEN))
 win_y = int(win32api.GetSystemMetrics(win32con.SM_CYSCREEN))
 
 win = tk.Tk()
@@ -113,6 +113,7 @@ def init_stars(star_return):
         _total_coord['y'] += star['position']['y']
     center_coord['x'] = _total_coord['x']/len(star_return['star_list'])
     center_coord['y'] = _total_coord['y']/len(star_return['star_list'])
+
     # 计算缩放比例
     _max_dist_x = 0
     _max_dist_y = 0
@@ -165,45 +166,82 @@ def draw_text(canvas, text, x, y, scale, font_size, fill_color):
 @app.get("/getStars/{posx}/{posy}/{posz}/{dist}")
 def get_stars(posx: float, posy: float, posz: float, dist: float):
     global df
+
+    # 天体的筛选距离
+    final_dist = dist
+
     print('pos:\t', posx, posy, posz)
     df['distance'] = np.sqrt((df['x'] - posx) ** 2 +
                              (df['y'] - posy) ** 2 + (df['z'] - posz) ** 2)
-    star_list = df[df['distance'] <= dist].values.tolist()
+    star_list = df[df['distance'] <= final_dist].values.tolist()
 
     while len(star_list) < 2:
-        dist = dist + 0.1
-        star_list = df[df['distance'] <= dist].values.tolist()
+        final_dist = final_dist + 0.1
+        star_list = df[df['distance'] <= final_dist].values.tolist()
 
-    star_return = {'star_list': [{
-        'id': star[0],
-        'hip_index': star[1],
-        'hd_index': star[2],
-        'hr_index': star[3],
-        'gl_code': star[4],
-        'bf_code': star[5],
-        'proper_code': star[6],
-        'distToSun': star[9],
-        'abs_mag': star[14],
-        'spect': star[15],
-        'color_index': star[16],
-        'position': {
-            'x': star[17],
-            'y': star[18],
-            'z': star[19]
-        },
-        'radius': (20-float(star[14]))/20,
-        'velocity': {
-            'vx': star[20],
-            'vy': star[21],
-            'vz': star[22]
-        },
-        'planet': [{
-            'orbit_radius': randint(100, 300)/1500,
-            'start_angle': randint(0, 1000),
-            'p_angle': randint(0, 1000),
-            'radius': randint(150, 300)/1000
-        } for i in range(0, randint(4, 6))]
-    } for star in star_list]}
+    # 返回外层天体列表
+    final_dist = dist
+    outer_star_list = df[df['distance'] <= final_dist * 7].values.tolist()
+
+    while len(outer_star_list) < 50:
+        final_dist = final_dist + 1
+        outer_star_list = df[df['distance'] <= final_dist].values.tolist()
+
+    star_return = {
+        'star_list': [{
+            'id': star[0],
+            'hip_index': star[1],
+            'hd_index': star[2],
+            'hr_index': star[3],
+            'gl_code': star[4],
+            'bf_code': star[5],
+            'proper_code': star[6],
+            'distToSun': star[9],
+            'abs_mag': star[14],
+            'spect': star[15],
+            'color_index': star[16],
+            'position': {
+                'x': star[17],
+                'y': star[18],
+                'z': star[19]
+            },
+            'radius': (20-float(star[14]))/20,
+            'velocity': {
+                'vx': star[20],
+                'vy': star[21],
+                'vz': star[22]
+            },
+            'planet': [{
+                'orbit_radius': randint(100, 300)/1500,
+                'start_angle': randint(0, 1000),
+                'p_angle': randint(0, 1000),
+                'radius': randint(150, 300)/1000
+            } for i in range(0, randint(4, 6))]
+        } for star in star_list],
+        "outer_star_list": [{
+            'id': outer_star[0],
+            'hip_index': outer_star[1],
+            'hd_index': outer_star[2],
+            'hr_index': outer_star[3],
+            'gl_code': outer_star[4],
+            'bf_code': outer_star[5],
+            'proper_code': outer_star[6],
+            'distToSun': outer_star[9],
+            'abs_mag': outer_star[14],
+            'spect': outer_star[15],
+            'color_index': outer_star[16],
+            'position': {
+                'x': outer_star[17],
+                'y': outer_star[18],
+                'z': outer_star[19]
+            },
+            'radius': (20-float(outer_star[14]))/20,
+            'velocity': {
+                'vx': outer_star[20],
+                'vy': outer_star[21],
+                'vz': outer_star[22]
+            }
+        } for outer_star in outer_star_list]}
 
     # 打印输出
     for star in star_return['star_list']:
